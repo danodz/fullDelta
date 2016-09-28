@@ -9,4 +9,6 @@ app pending = do
 
 main :: IO ()
 main = do
+    putStrLn "Running fullDelta server"
+    putStrLn "Welcome to the shit!"
     WS.runServer "0.0.0.0" 9000 app
