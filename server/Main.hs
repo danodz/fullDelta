@@ -5,7 +5,12 @@ app :: WS.ServerApp
 app pending = do
     conn <- WS.acceptRequest pending
     WS.forkPingThread conn 30
-    return ()
+    read conn
+  where
+    read conn = do
+        msg <- WS.receiveDataMessage conn
+        print msg
+        read conn
 
 main :: IO ()
 main = do
