@@ -4,6 +4,7 @@ import qualified Data.ByteString.Lazy.Char8 as BS8
 import Control.Concurrent (forkIO, MVar, newMVar, takeMVar, putMVar, modifyMVar_, readMVar, threadDelay)
 import qualified Data.Aeson as AE
 import Data.Maybe
+import Control.Monad
 
 instance Show (MVar a) where
     show x = "MVar"
@@ -36,14 +37,15 @@ app gameStateCommands pending = do
 update :: MVar [[String]] -> GameState -> IO ()
 update gameStateCommands gameState = do
     commands <- readMVar gameStateCommands
-    mapM_ (\command -> case head command of
-        "SetAngle" -> print (( read $ last command ) :: Float)
-        "SetSpeed" -> print (( read $ last command ) :: Float)
-        _ -> print 2
-      ) commands
+    newState <- foldM (\state command -> case head command of
+        "SetAngle" -> return gameState { ship = (ship gameState) {angle = (( read $ last command ) :: Float)} }
+        "SetSpeed" -> return gameState { ship = (ship gameState) {speed = (( read $ last command ) :: Float)} }
+        _ -> return gameState
+      ) gameState commands
+    print gameState
     modifyMVar_ gameStateCommands (\x -> return [])
     threadDelay 33333
-    update gameStateCommands gameState
+    update gameStateCommands newState
 
 main :: IO ()
 main = do
