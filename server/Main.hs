@@ -45,7 +45,15 @@ update gameStateCommands gameState = do
     print gameState
     modifyMVar_ gameStateCommands (\x -> return [])
     threadDelay 33333
-    update gameStateCommands newState
+    update gameStateCommands newState {
+        ship = updateShip $ ship newState
+        }
+
+-- Too many ships
+updateShip :: Ship -> Ship
+updateShip ship = ship { x = x ship + cos ((angle ship) * pi / 180) * (speed ship)
+                       , y = y ship + sin ((angle ship) * pi / 180) * (speed ship)
+                       }
 
 main :: IO ()
 main = do
