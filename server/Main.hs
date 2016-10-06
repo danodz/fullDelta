@@ -13,18 +13,21 @@ data Ship = Ship { x :: Float
                  , y :: Float
                  , angle :: Float
                  , speed :: Float
+                 , connection :: WS.Connection
                  }
+instance Show Ship where
+  show (Ship x y angle speed _) = show x ++ ", " ++ show y ++ ", " ++ show angle ++ ", " ++ show speed
+
+data GameState = EmptyGameState | GameState { ship :: Ship
+                                            }
     deriving (Show)
 
-data GameState = GameState { ship :: Ship
-                           }
-    deriving (Show)
-
-app :: MVar [[String]] -> WS.ServerApp
-app gameStateCommands pending = do
+app :: MVar [[String]] -> MVar GameState -> WS.ServerApp
+app gameStateCommands gameState pending = do
     conn <- WS.acceptRequest pending
     WS.forkPingThread conn 30
     WS.sendDataMessage conn $ WS.Text $ BS8.pack "Hello"
+    modifyMVar_ gameState (\x -> return $ GameState $ Ship 0 0 0 0 conn )
 
     readMsg conn gameStateCommands
   where
@@ -34,22 +37,28 @@ app gameStateCommands pending = do
             return $ fromMaybe [""] ((AE.decode msg) :: Maybe [String]) : x)
         readMsg conn commands
 
-update :: MVar [[String]] -> GameState -> IO ()
-update gameStateCommands gameState = do
-    commands <- readMVar gameStateCommands
-    newState <- foldM (\state command -> case head command of
-        "SetAngle" -> return gameState { ship = (ship gameState) {angle = (( read $ last command ) :: Float)} }
-        "SetSpeed" -> return gameState { ship = (ship gameState) {speed = (( read $ last command ) :: Float)} }
-        _ -> return gameState
-      ) gameState commands
-    print gameState
+update :: MVar [[String]] -> MVar GameState -> IO ()
+update gameStateCommands gameStateVar = do
+    modifyMVar_ gameStateVar (\gameState -> do
+        case gameState of
+            EmptyGameState -> return EmptyGameState
+            GameState _ -> do
+                print gameState
+                commands <- readMVar gameStateCommands
+                newState <- foldM (\state command -> case head command of
+                    "SetAngle" -> return gameState { ship = (ship gameState) {angle = (( read $ last command ) :: Float)} }
+                    "SetSpeed" -> return gameState { ship = (ship gameState) {speed = (( read $ last command ) :: Float)} }
+                    _ -> return gameState
+                    ) gameState commands
+        
+                return newState { ship = updateShip $ ship newState
+                                }
+        )
     modifyMVar_ gameStateCommands (\x -> return [])
     threadDelay 33333
-    update gameStateCommands newState {
-        ship = updateShip $ ship newState
-        }
+    update gameStateCommands gameStateVar
 
--- Too many ships
+-- Too many ship
 updateShip :: Ship -> Ship
 updateShip ship = ship { x = x ship + cos ((angle ship) * pi / 180) * (speed ship)
                        , y = y ship + sin ((angle ship) * pi / 180) * (speed ship)
@@ -60,7 +69,8 @@ main = do
     putStrLn "Running fullDelta server"
     putStrLn "Welcome to the shit!"
     commands <- newMVar []
-    forkIO $ WS.runServer "0.0.0.0" 9000 $ app commands
-    forkIO $ update commands $ GameState $ Ship 0 0 0 0
+    gameState <- newMVar $ EmptyGameState
+    forkIO $ WS.runServer "0.0.0.0" 9000 $ app commands gameState
+    forkIO $ update commands gameState
     getLine
     return ()
