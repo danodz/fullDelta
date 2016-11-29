@@ -5,6 +5,7 @@ import Control.Concurrent (forkIO, MVar, newMVar, takeMVar, putMVar, modifyMVar_
 import qualified Data.Aeson as AE
 import Data.Maybe
 import Control.Monad
+import Control.Exception
 
 instance Show (MVar a) where
     show x = "MVar"
@@ -43,14 +44,15 @@ update gameStateCommands gameStateVar = do
         case gameState of
             EmptyGameState -> return EmptyGameState
             GameState _ -> do
-                print gameState
                 commands <- readMVar gameStateCommands
                 newState <- foldM (\state command -> case head command of
                     "SetAngle" -> return gameState { ship = (ship gameState) {angle = (( read $ last command ) :: Float)} }
                     "SetSpeed" -> return gameState { ship = (ship gameState) {speed = (( read $ last command ) :: Float)} }
                     _ -> return gameState
                     ) gameState commands
-        
+
+                catch ( WS.sendDataMessage (connection $ ship gameState) $ WS.Text $ BS8.pack $ show gameState ) ( \(SomeException e) -> return ())
+
                 return newState { ship = updateShip $ ship newState
                                 }
         )
