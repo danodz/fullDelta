@@ -1,4 +1,4 @@
-ip = "192.168.0.101";
+ip = "localhost";
 port = "4567";
 
 document.addEventListener("DOMContentLoaded", init);
