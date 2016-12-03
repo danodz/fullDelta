@@ -1,16 +1,23 @@
 document.addEventListener("DOMContentLoaded",init);
 
 ship = {};
+ui = { speedControl : createHandleBar( 0, -10, 50, 300, 10, -100, 100)
+     };
+connected = false;
+
+verbose = true;
 
 function init()
 {
     conn = new WebSocket("ws://0.0.0.0:9000");
     conn.onopen = function (event) {
+        connected = true;
         conn.send("Hello"); 
     };
     conn.onmessage = function (event) {
         ship = event.data;
-        console.log(ship);
+        if(verbose)
+            console.log(ship);
     }
     canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
@@ -71,28 +78,18 @@ function init()
         keysReleased[ press+"" ] = true;
     }
     
-    entities = [createHandleBar( 0, -10, 50, 300, 10, -100, 100, "speed", "SetSpeed")];
     requestAnimationFrame( gameUpdate );
 }
 
-function createHandleBar(x, y, width, height, defaultValue, minValue, maxValue, valueName, commandName)
+function createHandleBar(x, y, width, height, defaultValue)
 {
     var bar = { x : x
               , y : y
               , handleY : defaultValue
               , width : width
               , height : height
-              , maxValue : maxValue
-              , minValue : minValue
-              , valueName : valueName
-              , commandName : commandName
               , dragging : false
-              , value : function()
-                  {
-                      var ratio = Math.abs( this.maxValue - this.minValue ) / this.height;
-                      var newValue = ratio * (this.handleY + height/2 - this.y) + this.minValue;
-                      return Math.floor(newValue);
-                  }
+              , value : defaultValue
               , update : function()
                   {
                       if(mouseDown && collideMouse( this ))
@@ -102,20 +99,20 @@ function createHandleBar(x, y, width, height, defaultValue, minValue, maxValue, 
                       if(!mouseDown)
                       {
                           this.dragging = false;
-                          this.value();
                       }
                       if(this.dragging)
                       {
                           this.handleY = mousePos.y;
-                          conn.send( msgFormat( this.commandName, this.value() ) );
-                      }
-                      if(this.handleY < this.y + 5 - this.height / 2)
-                      {
-                          this.handleY = this.y + 5 - this.height / 2;
-                      }
-                      if(this.handleY > this.y - 5 + this.height / 2)
-                      {
-                          this.handleY = this.y - 5 + this.height / 2;
+                          if(this.handleY < this.y + 5 - this.height / 2)
+                          {
+                              this.handleY = this.y + 5 - this.height / 2;
+                          }
+                          if(this.handleY > this.y - 5 + this.height / 2)
+                          {
+                              this.handleY = this.y - 5 + this.height / 2;
+                          }
+
+                          this.value = (1 / (this.height - 10)) * (this.handleY + (height-10)/2 - this.y);
                       }
                   }
               , draw : function()
@@ -125,19 +122,6 @@ function createHandleBar(x, y, width, height, defaultValue, minValue, maxValue, 
                   }
               }
     return bar;
-}
-
-function msgFormat()
-{
-    msg = '['
-    for(var i = 0; i < arguments.length; i++)
-    {
-        if(i != 0)
-            msg += ","
-        msg += '"' + arguments[i].toString() + '"';
-    }
-    msg += ']'
-    return msg
 }
 
 function drawRect( x , y , width , height , color )
@@ -165,14 +149,13 @@ function gameUpdate()
     ctx.translate( innerWidth/2 , innerHeight/2 );
     ctx.scale( 1 , -1 );
 
-    if(ship != {})
+    for (var i in ui)
     {
-        for ( var i = 0 ; i < entities.length ; i++ )
-        {
-            entities[i].update();
-            entities[i].draw();
-        }
+        ui[i].update();
+        ui[i].draw();
     }
+    if(connected)
+        conn.send( JSON.stringify( ["SetSpeed", ui.speedControl.value.toString()] ) );
 
     ctx.restore();
 
