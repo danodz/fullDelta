@@ -174,10 +174,6 @@ function init()
         }
     });
     
-    stars = [];
-    for ( var i = 0 ; i < 100 ; i++ )
-        stars.push( { x : Math.random()*400 - 200 , y : Math.random()*400 - 200 } );
-        
     generateStars(500);
     
     player = { x : 0
@@ -189,51 +185,47 @@ function init()
              , velX : 0
              , velY : 0
              , velA : 0
-             , speed : 2
+             , speed : 0
+             , maxSpeed : 3
+             , minSpeed : -1
+             , acceleration : 0.01
              , turnSpeed : 0.75
              , angle : 0
-             , applyVel : function(mod)
-                 {
-                     this.x += this.velX * mod;
-                     this.y += this.velY * mod;
-                 }
              , update : function()
                  {
-                     if ( this.type == 1 )
-                     {
-                         this.speed = 2;
-                         this.turnSpeed = 0.75;
-                     }
-                     else if ( this.type == 2 )
-                     {
-                         this.speed = 0.5;
-                         this.turnSpeed = 0.15;
-                     }
-                     
                      this.angle += this.velA;
+                     
+                     var changedSpeed = keys[38] || keys[40];
+                     
+                     if ( keys[38] )
+                         this.speed += this.acceleration;
+                     if ( keys[40] )
+                         this.speed -= this.acceleration;
+                     if ( this.speed > 1 ) this.speed = 1;
+                     if ( this.speed < -1 ) this.speed = -1;
+                     
+                     var realSpeed = this.speed;
+                     if ( realSpeed > 0 ) realSpeed *= this.maxSpeed;
+                     if ( realSpeed < 0 ) realSpeed *= -this.minSpeed;
+                     this.velX += trustX( this.angle , realSpeed );
+                     this.velY += trustY( this.angle , realSpeed );
                      
                      this.velX *= 0.8;
                      this.velY *= 0.8;
                      this.velA *= 0.8;
+                     
+                     this.x += this.velX;
+                     this.y += this.velY;
+                     this.angle += this.velA;
                      
                      if ( keys[37] )
                          this.velA -= this.turnSpeed;
                      if ( keys[39] )
                          this.velA += this.turnSpeed;
                      
-                     this.velX += trustX( this.angle , this.speed );
-                     this.velY += trustY( this.angle , this.speed );
-                     
-                     if (keys[38])	
-                         this.applyVel(1.25);
-                     else if (keys[40])
-                         this.applyVel(0.65);
-                     else
-                         this.applyVel(1);
-                         
                      correctPosition(this);
                      
-                     send({ type : "p" , x : this.x , y : this.y , angle : this.angle });
+                     send({ type : "p" , x : this.x , y : this.y , speed : this.speed , changedSpeed : changedSpeed , angle : this.angle });
                      
                      if ( keys[32] )
                      {
@@ -247,8 +239,8 @@ function init()
 function generateStars(nbStars)
 {
     stars = [];
-	for ( var i = 0 ; i < nbStars ; i++ )
-		stars.push( { x : Math.random()*gameWidth - gameWidth/2 , y : Math.random()*gameHeight - gameHeight/2 } );
+    for ( var i = 0 ; i < nbStars ; i++ )
+        stars.push( { x : Math.random()*gameWidth - gameWidth/2 , y : Math.random()*gameHeight - gameHeight/2 } );
 }
 
 function resizeGame()
@@ -299,11 +291,6 @@ function update()
             sh.angle = player.angle;
             player.type = sh.type; // :(
         }
-        else if ( player.id && ships[player.id] && ships[player.id].type == 1 && keys[65] )
-        {
-            if ( dist( player.x , player.y , sh.x , sh.y ) < 90 )
-                send({ type : "take ship" , id : id });
-        }
         
         if ( sh.team == 1 )
         {
@@ -319,8 +306,6 @@ function update()
             else
                 drawImg( sh.x , sh.y , sh.angle , "imgs/v61.png" );
         }
-        if ( dist( player.x , player.y , sh.x , sh.y ) < 90 && sh.type == 2 && ships[player.id].type == 1 )
-            drawTextUI("press 'a' to control the mothership");
     }
     
         
