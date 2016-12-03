@@ -163,11 +163,13 @@ wss.on('connection', ws =>
         
         msg.map( msg =>
         {
-            if ( msg.type == "p" && msg.x != undefined && msg.y != undefined && msg.angle != undefined )
+            if ( msg.type == "p" && msg.x != undefined && msg.y != undefined && msg.angle != undefined && msg.speed != undefined && msg.changedSpeed != undefined )
             {
                 player.ship.x = msg.x;
                 player.ship.y = msg.y;
                 player.ship.angle = msg.angle;
+                if ( msg.changedSpeed )
+                    player.ship.speed = msg.speed;
             }
             else if ( msg.type == "shoot" && !player.ship.life.isDead() )
             {
@@ -256,9 +258,6 @@ function shipsUpdate()
 {
     var ids = Object.keys(ships);
     
-    var team1MS = false;
-    var team2MS = false;
-    
     for ( var id in ships )
     {
         var ship = ships[id];
@@ -269,13 +268,13 @@ function shipsUpdate()
         ship.velX *= 0.95;
         ship.velY *= 0.95;
         
-        if ( Math.random() < 0.1 )
+        if ( Math.random() < 0.1 ) // chances that we look for a beter target
         {
             var tid = ids[Math.floor(Math.random()*ids.length)];
             
             if ( ships[tid] )
             {
-                if ( ships[tid].team != ship.team )
+                if ( ships[tid].team != ship.team ) // only target enemy ships
                 {
                     var dist = 10000000000000;
                     if ( ship.target && ship.target.life.life > 0 )
@@ -390,12 +389,6 @@ function shipsUpdate()
                     team2MS = true;
             }
         }
-    }
-    
-    if ( !team1MS || !team2MS )
-    {
-        resetGame();
-        log("RESET " + team1MS + " " + team2MS);
     }
 }
 
