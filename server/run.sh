@@ -1,1 +1,1 @@
-stack exec server
+node main.js
