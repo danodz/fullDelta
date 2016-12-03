@@ -25,3 +25,8 @@ function collideAABB( box1 , box2 )
            return true;
    return false;
 }
+
+function collideMouse( box )
+{
+    return collideAABB( {x : mousePos.x, y : mousePos.y, width : 1, height : 1}, box );
+}

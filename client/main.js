@@ -67,6 +67,26 @@ function init()
     canvas.width = window.innerWidth;
     gameWidth = canvas.width;
     gameHeight = canvas.height;
+
+    mousePos = {x:0,y:0};
+    getMousePosE = function(canvas, evt)
+    {
+        var rect = canvas.getBoundingClientRect();
+        
+        return { x : evt.clientX - rect.left - (innerWidth/2)
+               , y : (evt.clientY - rect.top) - (innerHeight/2)
+               };
+    }
+    canvas.addEventListener('mousemove', function(evt)
+    {
+        mousePos = getMousePosE( canvas , evt );
+    }, false);
+    
+    mouseDown = false;
+    mouseClick = false;
+    canvas.addEventListener( 'mousedown' , function(){ mouseDown = true; } );
+    canvas.addEventListener( 'mouseup' , function(){ mouseDown = false; } );
+    canvas.addEventListener( 'click' , function(){ mouseClick = true; } );
     
     ctx = canvas.getContext("2d");
     camX = 0;
@@ -87,6 +107,9 @@ function init()
                 } 
             , draw : function(){drawRadar()} 
             };
+    
+    ui = { speedControl : createHandleBar( 0, -10, 50, 300, 10, -100, 100)
+         };
     
     openConnection( function(){} , msg =>
     {
@@ -303,6 +326,12 @@ function update()
         
     radar.update();
     radar.draw();
+
+    for (var i in ui)
+    {
+        ui[i].update();
+        ui[i].draw();
+    }
     
     drawEmptyRect( arena.xMin , arena.yMin , arena.xMax*2 , arena.yMax*2 , "magenta" , 2);
     
@@ -460,7 +489,7 @@ function drawStaticEmptyRect( x , y , w , h , c , lW)
     ctx.save();
     ctx.strokeStyle = c;
     ctx.lineWidth = lW;
-    ctx.strokeRect( x + camX , y + camY , w , h );
+    ctx.strokeRect( x + camX - w/2 , y + camY - h/2, w , h );
     ctx.restore();
 }
 
@@ -469,7 +498,7 @@ function drawStaticRect( x , y , w , h , c , a)
     ctx.save();
     ctx.globalAlpha = a;
     ctx.fillStyle = c;
-    ctx.fillRect( x + camX , y + camY , w , h );
+    ctx.fillRect( x + camX - w/2, y + camY - h/2, w , h );
     ctx.restore();
 }
 
@@ -528,4 +557,49 @@ function drawStaticText(text , x , y , size , c)
 function log()
 {
     console.log.apply(console,arguments);
+}
+
+function createHandleBar(x, y, width, height, defaultValue)
+{
+    var bar = { x : x
+              , y : y
+              , handleY : defaultValue
+              , width : width
+              , height : height
+              , dragging : false
+              , value : defaultValue
+              , update : function()
+                  {
+                      if(mouseDown && collideMouse( this ))
+                      {
+                          this.dragging = true;
+                      }
+                      if(!mouseDown)
+                      {
+                          this.dragging = false;
+                      }
+                      if(this.dragging)
+                      {
+                          log(mousePos.y);
+                          this.handleY = mousePos.y;
+                          log(this.handleY);
+                          if(this.handleY < this.y + 5 - this.height / 2)
+                          {
+                              this.handleY = this.y + 5 - this.height / 2;
+                          }
+                          if(this.handleY > this.y - 5 + this.height / 2)
+                          {
+                              this.handleY = this.y - 5 + this.height / 2;
+                          }
+
+                          this.value = (1 / (this.height - 10)) * (this.handleY + (height-10)/2 - this.y);
+                      }
+                  }
+              , draw : function()
+                  {
+                      drawStaticRect(this.x, this.handleY, this.width, 10, "lightgray");
+                      drawStaticEmptyRect(this.x, this.y, this.width, this.height, "white", 3);
+                  }
+              }
+    return bar;
 }
