@@ -108,7 +108,7 @@ function init()
             , draw : function(){drawRadar()} 
             };
     
-    ui = { speedControl : createHandleBar( 0, -10, 50, 300, 10, -100, 100)
+    ui = { speedControl : createHandleBar( 0, -10, 50, 300, 0.5, -100, 100)
          };
     
     openConnection( function(){} , msg =>
@@ -203,6 +203,9 @@ function init()
                          this.speed -= this.acceleration;
                      if ( this.speed > 1 ) this.speed = 1;
                      if ( this.speed < -1 ) this.speed = -1;
+
+                     this.speed = ui.speedControl.value * 2 - 1;
+                     log(this.speed);
                      
                      var realSpeed = this.speed;
                      if ( realSpeed > 0 ) realSpeed *= this.maxSpeed;
@@ -565,9 +568,7 @@ function createHandleBar(x, y, width, height, defaultValue)
                       }
                       if(this.dragging)
                       {
-                          log(mousePos.y);
                           this.handleY = mousePos.y;
-                          log(this.handleY);
                           if(this.handleY < this.y + 5 - this.height / 2)
                           {
                               this.handleY = this.y + 5 - this.height / 2;
@@ -577,7 +578,7 @@ function createHandleBar(x, y, width, height, defaultValue)
                               this.handleY = this.y - 5 + this.height / 2;
                           }
 
-                          this.value = (1 / (this.height - 10)) * (this.handleY + (height-10)/2 - this.y);
+                          this.value = (-1 / (this.height - 10)) * ((this.handleY + 10) - (this.height - 10)/2 + (this.y + 10));
                       }
                   }
               , draw : function()
