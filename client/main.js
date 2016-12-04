@@ -197,6 +197,7 @@ function init()
                      
                      var changedSpeed = keys[38] || keys[40];
                      
+                     this.speed = ui.speedControl.value * 2 - 1;
                      if ( keys[38] )
                          this.speed += this.acceleration;
                      if ( keys[40] )
@@ -204,8 +205,7 @@ function init()
                      if ( this.speed > 1 ) this.speed = 1;
                      if ( this.speed < -1 ) this.speed = -1;
 
-                     this.speed = ui.speedControl.value * 2 - 1;
-                     log(this.speed);
+                     ui.speedControl.value = (this.speed + 1) / 2;
                      
                      var realSpeed = this.speed;
                      if ( realSpeed > 0 ) realSpeed *= this.maxSpeed;
@@ -583,7 +583,7 @@ function createHandleBar(x, y, width, height, defaultValue)
                   }
               , draw : function()
                   {
-                      //this.handleY = (this.value * 2 - 1) * ((this.height + 10)/2) + this.y;
+                      this.handleY = -(this.value * 2 - 1) * ((this.height - 10)/2) + this.y;
                       drawStaticRect(this.x, this.handleY, this.width, 10, "lightgray");
                       drawStaticEmptyRect(this.x, this.y, this.width, this.height, "white", 3);
                   }
