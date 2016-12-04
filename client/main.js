@@ -578,11 +578,12 @@ function createHandleBar(x, y, width, height, defaultValue)
                               this.handleY = this.y - 5 + this.height / 2;
                           }
 
-                          this.value = (-1 / (this.height - 10)) * ((this.handleY + 10) - (this.height - 10)/2 + (this.y + 10));
+                          this.value = ((this.y - this.handleY) / ((this.height - 10)/2) + 1) / 2;
                       }
                   }
               , draw : function()
                   {
+                      //this.handleY = (this.value * 2 - 1) * ((this.height + 10)/2) + this.y;
                       drawStaticRect(this.x, this.handleY, this.width, 10, "lightgray");
                       drawStaticEmptyRect(this.x, this.y, this.width, this.height, "white", 3);
                   }
